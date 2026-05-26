@@ -12,7 +12,7 @@ pipeline {
         stage('Deploy to Nginx Server') {
             steps {
                 sh '''
-                scp -o StrictHostKeyChecking=no index.html ubuntu@52.53.125.85:/tmp/
+                scp -o StrictHostKeyChecking=no index.html ubuntu@52.53.24.160:/tmp/
 
                 ssh -o StrictHostKeyChecking=no ubuntu@52.53.24.160 "
                     sudo cp /tmp/index.html /var/www/html/index.html
