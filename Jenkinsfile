@@ -1,6 +1,12 @@
 pipeline {
     agent any
 
+    environment {
+        APP_NAME = "my-nginx-app"
+        CONTAINER_NAME = "mywebsite"
+        NGINX_SERVER = "18.144.234.108"
+    }
+
     stages {
 
         stage('Clone Repository') {
@@ -9,13 +15,41 @@ pipeline {
             }
         }
 
-        stage('Deploy to Nginx Server') {
+        stage('Copy Files to Nginx Server') {
             steps {
                 sh '''
-                scp -o StrictHostKeyChecking=no index.html ubuntu@52.53.24.160:/tmp/
+                scp -o StrictHostKeyChecking=no Dockerfile index.html ubuntu@$NGINX_SERVER:/home/ubuntu/nginx-devops-project/
+                '''
+            }
+        }
 
-                ssh -o StrictHostKeyChecking=no ubuntu@52.53.24.160 "
-                    sudo cp /tmp/index.html /var/www/html/index.html
+        stage('Build Docker Image on Nginx Server') {
+            steps {
+                sh '''
+                ssh -o StrictHostKeyChecking=no ubuntu@$NGINX_SERVER "
+                    cd /home/ubuntu/nginx-devops-project && 
+                    sudo docker build -t $APP_NAME .
+                "
+                '''
+            }
+        }
+
+        stage('Stop Old Container') {
+            steps {
+                sh '''
+                ssh -o StrictHostKeyChecking=no ubuntu@$NGINX_SERVER "
+                    sudo docker stop $CONTAINER_NAME || true &&
+                    sudo docker rm $CONTAINER_NAME || true
+                "
+                '''
+            }
+        }
+
+        stage('Run New Container') {
+            steps {
+                sh '''
+                ssh -o StrictHostKeyChecking=no ubuntu@$NGINX_SERVER "
+                    sudo docker run -d --name $CONTAINER_NAME -p 8081:80 $APP_NAME
                 "
                 '''
             }
